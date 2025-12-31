@@ -1,0 +1,23 @@
+name: Deploy (self-hosted)
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install deps
+        run: |
+          cd /opt/mc/mc-bot
+          git fetch --all
+          git reset --hard origin/main
+          npm ci --omit=dev
+
+      - name: Restart bot
+        run: |
+          sudo systemctl restart mineflyer-bot
+          sudo systemctl is-active mineflyer-bot
