@@ -1,0 +1,23 @@
+{
+  "name": "mc-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FerZablah/mc-bot.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/FerZablah/mc-bot/issues"
+  },
+  "homepage": "https://github.com/FerZablah/mc-bot#readme",
+  "dependencies": {
+    "mineflayer": "^4.33.0"
+  }
+}
