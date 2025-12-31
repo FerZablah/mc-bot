@@ -37,9 +37,9 @@ class AfkBot {
     bot.clearControlStates()
     bot.chat(`/tppos ${x} ${y} ${z} ${world}`)
 
-    if (skinUrl) {
-      setTimeout(() => bot.chat(`/skin url "${skinUrl}" classic`), 2000)
-    }
+    //if (skinUrl) {
+      setTimeout(() => bot.chat(`/skin url "https://minesk.in/7904d8b03d7546b196d91c3e0c84381c" classic`), 2000)
+    //}
 
     this._idleInterval = setInterval(() => bot.clearControlStates(), 10_000)
 
