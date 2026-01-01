@@ -135,7 +135,6 @@ class AfkBot {
     const bot = this.bot
     const name = this.opts.name
     if (!this.opts.talkEnabled) {
-      console.log(`[${name}] talkEnabled=false, not starting proximity talk`)
       return
     }
 
@@ -146,31 +145,10 @@ class AfkBot {
     const cooldown = this.opts.talkCooldownMs
     const phrases = this.opts.talkPhrases
 
-    console.log(
-      `[${name}] Proximity talk STARTED range=${range} blocks, scanMs=${this.opts.talkScanMs}, cooldownMs=${cooldown}`
-    )
-
-    // Helpful protocol-level debugging:
-    // When a player entity appears/disappears client-side
-    bot.on('entitySpawn', (ent) => {
-      if (ent?.type === 'player') {
-        console.log(`[${name}] entitySpawn player: ${ent.username} id=${ent.id} pos=${ent.position}`)
-      }
-    })
-    bot.on('entityGone', (ent) => {
-      if (ent?.type === 'player') {
-        console.log(`[${name}] entityGone player: ${ent.username} id=${ent.id}`)
-      }
-    })
-
-    // If you want to see tab-list updates too:
-    bot.on('playerJoined', (p) => console.log(`[${name}] playerJoined(tab): ${p.username}`))
-    bot.on('playerLeft', (p) => console.log(`[${name}] playerLeft(tab): ${p?.username}`))
 
     this._talkInterval = setInterval(() => {
       try {
         if (!bot?.entity?.position) {
-          console.log(`[${name}] talk tick: bot has no position yet`)
           return
         }
 
@@ -178,15 +156,11 @@ class AfkBot {
         const botPos = bot.entity.position
 
         const playerEntities = Object.values(bot.entities).filter(e => e?.type === 'player')
-        console.log(
-          `[${name}] talk tick: botPos=${botPos} playerEntities=${playerEntities.length} players=[${playerEntities.map(e => e.username).join(', ')}]`
-        )
 
         for (const ent of playerEntities) {
           const username = ent.username
           if (!username || username === bot.username) continue
           if (!ent.position) {
-            console.log(`[${name}] skip ${username}: no ent.position`)
             continue
           }
 
@@ -195,22 +169,13 @@ class AfkBot {
 
           const state = this._nearState.get(username) ?? { inRange: false, lastSent: 0 }
 
-          console.log(
-            `[${name}] check ${username}: pos=${ent.position} d2=${d2.toFixed(2)} inRangeNow=${inRangeNow} prevInRange=${state.inRange} lastSentAgoMs=${now - state.lastSent}`
-          )
-
           // ENTER
           if (inRangeNow && !state.inRange) {
-            console.log(`[${name}] ENTER range: ${username}`)
 
             const canSend = phrases?.length && (now - state.lastSent) >= cooldown
             if (canSend) {
-              const msg = `${username}, ${pickRandom(phrases)}`
-              console.log(`[${name}] SENDING: ${msg}`)
               bot.chat(`/tell ${username} ${pickRandom(phrases)}`)
               state.lastSent = now
-            } else {
-              console.log(`[${name}] NOT sending (cooldown or no phrases). phrasesLen=${phrases?.length ?? 0}`)
             }
 
             state.inRange = true
@@ -220,7 +185,6 @@ class AfkBot {
 
           // LEAVE
           if (!inRangeNow && state.inRange) {
-            console.log(`[${name}] LEAVE range: ${username}`)
             state.inRange = false
             this._nearState.set(username, state)
           }
