@@ -151,6 +151,8 @@ class AfkBot {
       for (const username in bot.players) {
         if (username === bot.username) continue
 
+        console.log(username);
+        console.log(distSq(botPos, ent.position));
         const ent = bot.players[username]?.entity
         if (!ent?.position) continue
 
