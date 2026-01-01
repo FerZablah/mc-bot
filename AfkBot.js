@@ -46,6 +46,8 @@ class AfkBot {
     this._reconnectTimer = null
     this._attempt = 0
     this._stopped = false
+    this._poseState = new Map()         // username -> lastPoseValue
+    this._sleepingPlayers = new Set()   // usernames currently detected sleeping
 
     this._connect()
   }
@@ -106,25 +108,72 @@ class AfkBot {
       if (u) this._nearState.delete(u)
     })
 
-    bot.on('entitySleep', (entity) => {
-      if (!this.opts.autoSleepEnabled) return
-      if (!entity || entity.type !== 'player') return
-      if (entity.username === bot.username) return
+    // Detect sleeping via entity_metadata (works when entitySleep doesn't)
+    this.bot._client.on('packet', (data, meta) => {
+      if (meta.name !== 'entity_metadata') return
 
-      console.log(`[${name}] entitySleep detected: ${entity.username}`)
-      this._trySleep(`player ${entity.username} sleeping`)
-    })
+      const ent = this.bot?.entities?.[data.entityId]
+      if (!ent || ent.type !== 'player') return
 
-    bot.on('entityWake', (entity) => {
-      if (!this.opts.autoSleepEnabled) return
-      if (!entity || entity.type !== 'player') return
-      if (entity.username === bot.username) return
+      const username = ent.username
+      if (!username || username === this.bot.username) return
 
-      console.log(`[${name}] entityWake detected: ${entity.username}`)
-      // optional: if bot is sleeping, wake too
-      this._tryWake(`player ${entity.username} woke`)
+      // DEBUG: log metadata only when it contains something that looks like pose
+      // (so we don't spam too hard)
+      const poseItem =
+        data.metadata?.find(m => m?.type?.toLowerCase?.() === 'pose') ||
+        data.metadata?.find(m => m?.key === 6) // common pose index on many versions
+
+      if (!poseItem) return
+
+      const poseVal = poseItem.value
+
+      // Log what we actually received so we can confirm on your version
+      console.log(
+        `[${this.opts.name}] entity_metadata for ${username}: poseItem=`,
+        { key: poseItem.key, type: poseItem.type, value: poseItem.value }
+      )
+
+      const isSleeping = this._isSleepingPose(poseVal)
+
+      const wasSleeping = this._sleepingPlayers.has(username)
+
+      if (isSleeping && !wasSleeping) {
+        this._sleepingPlayers.add(username)
+        console.log(`[${this.opts.name}] DETECTED player sleeping: ${username} (pose=${poseVal})`)
+        this._trySleep(`player ${username} sleeping`)
+      }
+
+      if (!isSleeping && wasSleeping) {
+        this._sleepingPlayers.delete(username)
+        console.log(`[${this.opts.name}] DETECTED player woke: ${username} (pose=${poseVal})`)
+        // optional: wake bot too
+        // this._tryWake(`player ${username} woke`)
+      }
     })
   }
+
+  _isSleepingPose(poseVal) {
+    // Some protocols send strings like 'SLEEPING', some send numbers.
+    if (typeof poseVal === 'string') {
+      return poseVal.toLowerCase().includes('sleep')
+    }
+
+    if (typeof poseVal === 'number') {
+      // Pose enum in modern versions: 2 is usually SLEEPING
+      // (standing=0, fall_flying=1, sleeping=2, swimming=3, ...)
+      return poseVal === 2
+    }
+
+    // Some wrappers may send objects; try best effort
+    if (poseVal && typeof poseVal === 'object') {
+      const s = JSON.stringify(poseVal).toLowerCase()
+      return s.includes('sleep')
+    }
+
+    return false
+  }
+
 
   _onSpawn() {
     const bot = this.bot
@@ -284,6 +333,8 @@ class AfkBot {
     this._clearIdle()
     this._destroyBot()
     this._clearTalk()
+    this._poseState?.clear?.()
+    this._sleepingPlayers?.clear?.()
     this._reconnectTimer = setTimeout(() => {
       this._reconnectTimer = null
       this._connect()
@@ -316,6 +367,8 @@ class AfkBot {
     this._stopped = true
     this._clearReconnect()
     this._clearIdle()
+    this._poseState?.clear?.()
+    this._sleepingPlayers?.clear?.()
     this._clearTalk()
     this._nearState?.clear()
     this._destroyBot()
