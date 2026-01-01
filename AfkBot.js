@@ -223,7 +223,8 @@ class AfkBot {
     if (!bot) return
 
     // nether/end safety (beds don't work)
-    if (bot.game?.dimension && bot.game.dimension !== 'minecraft:overworld') {
+
+    if (bot.game?.dimension && bot.game.dimension !== 'overworld') {
       console.log(`[${this.opts.name}] skip sleep (${reason}) dimension=${bot.game.dimension}`)
       return
     }
