@@ -207,7 +207,7 @@ class AfkBot {
             if (canSend) {
               const msg = `${username}, ${pickRandom(phrases)}`
               console.log(`[${name}] SENDING: ${msg}`)
-              bot.chat(msg)
+              bot.chat(`/tell ${username} ${pickRandom(phrases)}`)
               state.lastSent = now
             } else {
               console.log(`[${name}] NOT sending (cooldown or no phrases). phrasesLen=${phrases?.length ?? 0}`)
