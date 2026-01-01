@@ -109,46 +109,45 @@ class AfkBot {
     })
 
     // Detect sleeping via entity_metadata (works when entitySleep doesn't)
-    this.bot._client.on('packet', (data, meta) => {
+    bot._client.on('packet', (data, meta) => {
       if (meta.name !== 'entity_metadata') return
 
-      const ent = this.bot?.entities?.[data.entityId]
+      const ent = bot.entities?.[data.entityId]
       if (!ent || ent.type !== 'player') return
+      if (!ent.username) return
 
-      const username = ent.username
-      if (!username || username === this.bot.username) return
-
-      // DEBUG: log metadata only when it contains something that looks like pose
-      // (so we don't spam too hard)
-      const poseItem =
-        data.metadata?.find(m => m?.type?.toLowerCase?.() === 'pose') ||
-        data.metadata?.find(m => m?.key === 6) // common pose index on many versions
-
-      if (!poseItem) return
-
-      const poseVal = poseItem.value
-
-      // Log what we actually received so we can confirm on your version
-      console.log(
-        `[${this.opts.name}] entity_metadata for ${username}: poseItem=`,
-        { key: poseItem.key, type: poseItem.type, value: poseItem.value }
-      )
-
-      const isSleeping = this._isSleepingPose(poseVal)
-
-      const wasSleeping = this._sleepingPlayers.has(username)
-
-      if (isSleeping && !wasSleeping) {
-        this._sleepingPlayers.add(username)
-        console.log(`[${this.opts.name}] DETECTED player sleeping: ${username} (pose=${poseVal})`)
-        this._trySleep(`player ${username} sleeping`)
+      // Normalize metadata: sometimes array, sometimes object
+      let items = []
+      if (Array.isArray(data.metadata)) {
+        items = data.metadata
+      } else if (data.metadata && typeof data.metadata === 'object') {
+        items = Object.entries(data.metadata).map(([k, v]) => ({
+          key: Number(k),
+          ...(v || {})
+        }))
       }
 
-      if (!isSleeping && wasSleeping) {
-        this._sleepingPlayers.delete(username)
-        console.log(`[${this.opts.name}] DETECTED player woke: ${username} (pose=${poseVal})`)
-        // optional: wake bot too
-        // this._tryWake(`player ${username} woke`)
+      // Print a compact view of all metadata keys in this packet
+      const compact = items.map(m => ({
+        key: m.key,
+        type: m.type,
+        value: m.value
+      }))
+
+      console.log(`[${name}] entity_metadata for ${ent.username} id=${data.entityId}:`, compact)
+
+      // Try common "pose" key=6 detection
+      const pose = items.find(m => m.key === 6)?.value
+      if (pose !== undefined) {
+        const sleeping =
+          (typeof pose === 'number' && pose === 2) ||
+          (typeof pose === 'string' && pose.toLowerCase().includes('sleep'))
+
+        console.log(`[${name}] pose key=6 value=${pose} sleeping=${sleeping}`)
+
+        if (sleeping) this._trySleep(`pose=${pose} (${ent.username})`)
+        // optional: wake if not sleeping
+        // else this._tryWake(`pose=${pose} (${ent.username})`)
       }
     })
   }
