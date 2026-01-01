@@ -147,22 +147,20 @@ class AfkBot {
       const now = Date.now()
       const botPos = bot.entity.position
 
-      // iterate known players (cheap); skip those without an entity
-      for (const username in bot.players) {
-        if (username === bot.username) continue
+      // Track who is currently in range this scan
+      for (const idStr in bot.entities) {
+        const ent = bot.entities[idStr]
+        if (!ent) continue
+        if (ent.type !== 'player') continue
 
-        console.log(username);
-        const ent = bot.players[username]?.entity
-        if (!ent?.position) continue
-        
-        const state = this._nearState.get(username) || { inRange: false, lastSent: 0 }
+        const username = ent.username
+        if (!username || username === bot.username) continue
+        if (!ent.position) continue
+
+        const state = this._nearState.get(username) ?? { inRange: false, lastSent: 0 }
         const inRangeNow = distSq(botPos, ent.position) <= rangeSq
-        console.log(distSq(botPos, ent.position));
 
-        console.log(inRangeNow);
-        console.log(!state.inRange);
-        
-        // enter range -> send ONCE (if cooldown passed)
+        // Enter range -> greet once (if cooldown passed)
         if (inRangeNow && !state.inRange) {
           if (phrases?.length && (now - state.lastSent) >= cooldown) {
             bot.chat(`${username}, ${pickRandom(phrases)}`)
@@ -173,7 +171,7 @@ class AfkBot {
           continue
         }
 
-        // leave range -> mark left (enables future greet)
+        // Leave range -> mark left
         if (!inRangeNow && state.inRange) {
           state.inRange = false
           this._nearState.set(username, state)
@@ -181,6 +179,7 @@ class AfkBot {
       }
     }, this.opts.talkScanMs)
   }
+
 
   _scheduleReconnect(reason) {
     if (this._stopped) return
