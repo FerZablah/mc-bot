@@ -7,6 +7,16 @@ const DEFAULT_PHRASES = [
   "A chambear pa"
 ]
 
+const today = new Date();
+const dayOfWeekNumber = today.getDay();
+
+if(dayOfWeekNumber == 4){
+  DEFAULT_PHRASES.push("Lo bueno es que ya casi es viernes")
+}
+else if(dayOfWeekNumber == 5){
+  DEFAULT_PHRASES.push("Gracias a Dios ya es viernes")
+}
+
 // fast: no sqrt
 function distSq(a, b) {
   const dx = a.x - b.x
@@ -20,6 +30,7 @@ function pickRandom(arr) {
 }
 
 class AfkBot {
+  
   constructor(opts) {
     this.opts = {
       viewDistance: 1,
