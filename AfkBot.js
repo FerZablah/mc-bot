@@ -35,6 +35,9 @@ class AfkBot {
       talkCooldownMs: 5 * 60_000, // 5 min
       talkScanMs: 1500,        // scan interval
       talkPhrases: DEFAULT_PHRASES,
+
+      autoSleepEnabled: true,
+      sleepBedMaxDistance: 3,
       ...opts
     }
 
@@ -101,6 +104,25 @@ class AfkBot {
     bot.on('playerLeft', (player) => {
       const u = player?.username
       if (u) this._nearState.delete(u)
+    })
+
+    bot.on('entitySleep', (entity) => {
+      if (!this.opts.autoSleepEnabled) return
+      if (!entity || entity.type !== 'player') return
+      if (entity.username === bot.username) return
+
+      console.log(`[${name}] entitySleep detected: ${entity.username}`)
+      this._trySleep(`player ${entity.username} sleeping`)
+    })
+
+    bot.on('entityWake', (entity) => {
+      if (!this.opts.autoSleepEnabled) return
+      if (!entity || entity.type !== 'player') return
+      if (entity.username === bot.username) return
+
+      console.log(`[${name}] entityWake detected: ${entity.username}`)
+      // optional: if bot is sleeping, wake too
+      this._tryWake(`player ${entity.username} woke`)
     })
   }
 
@@ -194,6 +216,54 @@ class AfkBot {
       }
     }, this.opts.talkScanMs)
   }
+
+  async _trySleep(reason = '') {
+    const bot = this.bot
+    if (!bot) return
+
+    // nether/end safety (beds don't work)
+    if (bot.game?.dimension && bot.game.dimension !== 'minecraft:overworld') {
+      console.log(`[${this.opts.name}] skip sleep (${reason}) dimension=${bot.game.dimension}`)
+      return
+    }
+
+    // already sleeping?
+    if (bot.isSleeping) {
+      console.log(`[${this.opts.name}] already sleeping (${reason})`)
+      return
+    }
+
+    try {
+      const bed = bot.findBlock({
+        matching: block => bot.isABed(block),
+        maxDistance: this.opts.sleepBedMaxDistance
+      })
+
+      if (!bed) {
+        console.log(`[${this.opts.name}] no bed found within ${this.opts.sleepBedMaxDistance} (${reason})`)
+        return
+      }
+
+      console.log(`[${this.opts.name}] trying sleep (${reason}) bed=${bed.position}`)
+      await bot.sleep(bed)
+      console.log(`[${this.opts.name}] now sleeping ✅`)
+    } catch (e) {
+      console.log(`[${this.opts.name}] sleep failed (${reason}):`, e?.message ?? e)
+    }
+  }
+
+  _tryWake(reason = '') {
+    const bot = this.bot
+    if (!bot) return
+    try {
+      if (!bot.isSleeping) return
+      bot.wake()
+      console.log(`[${this.opts.name}] woke up (${reason})`)
+    } catch (e) {
+      console.log(`[${this.opts.name}] wake failed (${reason}):`, e?.message ?? e)
+    }
+  }
+
 
 
 
