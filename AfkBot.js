@@ -159,6 +159,9 @@ class AfkBot {
         const inRangeNow = distSq(botPos, ent.position) <= rangeSq
         console.log(distSq(botPos, ent.position));
 
+        console.log(inRangeNow);
+        console.log(!state.inRange);
+        
         // enter range -> send ONCE (if cooldown passed)
         if (inRangeNow && !state.inRange) {
           if (phrases?.length && (now - state.lastSent) >= cooldown) {
