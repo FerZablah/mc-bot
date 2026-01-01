@@ -108,71 +108,24 @@ class AfkBot {
       if (u) this._nearState.delete(u)
     })
 
-    // Detect sleeping via entity_metadata (works when entitySleep doesn't)
-    bot._client.on('packet', (data, meta) => {
-      if (meta.name !== 'entity_metadata') return
+    bot.on('chat', async (username, message) => {
+      if (username === bot.username) return
 
-      const ent = bot.entities?.[data.entityId]
-      if (!ent || ent.type !== 'player') return
-      if (!ent.username) return
+      const msg = message.toLowerCase()
 
-      // Normalize metadata: sometimes array, sometimes object
-      let items = []
-      if (Array.isArray(data.metadata)) {
-        items = data.metadata
-      } else if (data.metadata && typeof data.metadata === 'object') {
-        items = Object.entries(data.metadata).map(([k, v]) => ({
-          key: Number(k),
-          ...(v || {})
-        }))
+      // trigger on substring "sleep" anywhere
+      if (msg.includes('sleep')) {
+        console.log(`[${this.opts.name}] sleep trigger from ${username}: ${message}`)
+        await this._trySleep(`chat trigger by ${username}`)
       }
 
-      // Print a compact view of all metadata keys in this packet
-      const compact = items.map(m => ({
-        key: m.key,
-        type: m.type,
-        value: m.value
-      }))
-
-      console.log(`[${name}] entity_metadata for ${ent.username} id=${data.entityId}:`, compact)
-
-      // Try common "pose" key=6 detection
-      const pose = items.find(m => m.key === 6)?.value
-      if (pose !== undefined) {
-        const sleeping =
-          (typeof pose === 'number' && pose === 2) ||
-          (typeof pose === 'string' && pose.toLowerCase().includes('sleep'))
-
-        console.log(`[${name}] pose key=6 value=${pose} sleeping=${sleeping}`)
-
-        if (sleeping) this._trySleep(`pose=${pose} (${ent.username})`)
-        // optional: wake if not sleeping
-        // else this._tryWake(`pose=${pose} (${ent.username})`)
+      // optional: wake trigger
+      if (msg.includes('wake')) {
+        console.log(`[${this.opts.name}] wake trigger from ${username}: ${message}`)
+        this._tryWake(`chat trigger by ${username}`)
       }
     })
   }
-
-  _isSleepingPose(poseVal) {
-    // Some protocols send strings like 'SLEEPING', some send numbers.
-    if (typeof poseVal === 'string') {
-      return poseVal.toLowerCase().includes('sleep')
-    }
-
-    if (typeof poseVal === 'number') {
-      // Pose enum in modern versions: 2 is usually SLEEPING
-      // (standing=0, fall_flying=1, sleeping=2, swimming=3, ...)
-      return poseVal === 2
-    }
-
-    // Some wrappers may send objects; try best effort
-    if (poseVal && typeof poseVal === 'object') {
-      const s = JSON.stringify(poseVal).toLowerCase()
-      return s.includes('sleep')
-    }
-
-    return false
-  }
-
 
   _onSpawn() {
     const bot = this.bot
