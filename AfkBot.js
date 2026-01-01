@@ -152,12 +152,12 @@ class AfkBot {
         if (username === bot.username) continue
 
         console.log(username);
-        console.log(distSq(botPos, ent.position));
         const ent = bot.players[username]?.entity
         if (!ent?.position) continue
-
+        
         const state = this._nearState.get(username) || { inRange: false, lastSent: 0 }
         const inRangeNow = distSq(botPos, ent.position) <= rangeSq
+        console.log(distSq(botPos, ent.position));
 
         // enter range -> send ONCE (if cooldown passed)
         if (inRangeNow && !state.inRange) {
