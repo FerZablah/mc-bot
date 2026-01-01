@@ -133,52 +133,104 @@ class AfkBot {
 
   _startProximityTalk() {
     const bot = this.bot
-    if (!this.opts.talkEnabled) return
+    const name = this.opts.name
+    if (!this.opts.talkEnabled) {
+      console.log(`[${name}] talkEnabled=false, not starting proximity talk`)
+      return
+    }
 
     if (this._talkInterval) clearInterval(this._talkInterval)
 
-    const rangeSq = this.opts.talkRange * this.opts.talkRange
+    const range = this.opts.talkRange
+    const rangeSq = range * range
     const cooldown = this.opts.talkCooldownMs
     const phrases = this.opts.talkPhrases
 
+    console.log(
+      `[${name}] Proximity talk STARTED range=${range} blocks, scanMs=${this.opts.talkScanMs}, cooldownMs=${cooldown}`
+    )
+
+    // Helpful protocol-level debugging:
+    // When a player entity appears/disappears client-side
+    bot.on('entitySpawn', (ent) => {
+      if (ent?.type === 'player') {
+        console.log(`[${name}] entitySpawn player: ${ent.username} id=${ent.id} pos=${ent.position}`)
+      }
+    })
+    bot.on('entityGone', (ent) => {
+      if (ent?.type === 'player') {
+        console.log(`[${name}] entityGone player: ${ent.username} id=${ent.id}`)
+      }
+    })
+
+    // If you want to see tab-list updates too:
+    bot.on('playerJoined', (p) => console.log(`[${name}] playerJoined(tab): ${p.username}`))
+    bot.on('playerLeft', (p) => console.log(`[${name}] playerLeft(tab): ${p?.username}`))
+
     this._talkInterval = setInterval(() => {
-      if (!bot?.entity?.position) return
+      try {
+        if (!bot?.entity?.position) {
+          console.log(`[${name}] talk tick: bot has no position yet`)
+          return
+        }
 
-      const now = Date.now()
-      const botPos = bot.entity.position
+        const now = Date.now()
+        const botPos = bot.entity.position
 
-      // Track who is currently in range this scan
-      for (const idStr in bot.entities) {
-        const ent = bot.entities[idStr]
-        if (!ent) continue
-        if (ent.type !== 'player') continue
+        const playerEntities = Object.values(bot.entities).filter(e => e?.type === 'player')
+        console.log(
+          `[${name}] talk tick: botPos=${botPos} playerEntities=${playerEntities.length} players=[${playerEntities.map(e => e.username).join(', ')}]`
+        )
 
-        const username = ent.username
-        if (!username || username === bot.username) continue
-        if (!ent.position) continue
-
-        const state = this._nearState.get(username) ?? { inRange: false, lastSent: 0 }
-        const inRangeNow = distSq(botPos, ent.position) <= rangeSq
-
-        // Enter range -> greet once (if cooldown passed)
-        if (inRangeNow && !state.inRange) {
-          if (phrases?.length && (now - state.lastSent) >= cooldown) {
-            bot.chat(`${username}, ${pickRandom(phrases)}`)
-            state.lastSent = now
+        for (const ent of playerEntities) {
+          const username = ent.username
+          if (!username || username === bot.username) continue
+          if (!ent.position) {
+            console.log(`[${name}] skip ${username}: no ent.position`)
+            continue
           }
-          state.inRange = true
-          this._nearState.set(username, state)
-          continue
-        }
 
-        // Leave range -> mark left
-        if (!inRangeNow && state.inRange) {
-          state.inRange = false
-          this._nearState.set(username, state)
+          const d2 = distSq(botPos, ent.position)
+          const inRangeNow = d2 <= rangeSq
+
+          const state = this._nearState.get(username) ?? { inRange: false, lastSent: 0 }
+
+          console.log(
+            `[${name}] check ${username}: pos=${ent.position} d2=${d2.toFixed(2)} inRangeNow=${inRangeNow} prevInRange=${state.inRange} lastSentAgoMs=${now - state.lastSent}`
+          )
+
+          // ENTER
+          if (inRangeNow && !state.inRange) {
+            console.log(`[${name}] ENTER range: ${username}`)
+
+            const canSend = phrases?.length && (now - state.lastSent) >= cooldown
+            if (canSend) {
+              const msg = `${username}, ${pickRandom(phrases)}`
+              console.log(`[${name}] SENDING: ${msg}`)
+              bot.chat(msg)
+              state.lastSent = now
+            } else {
+              console.log(`[${name}] NOT sending (cooldown or no phrases). phrasesLen=${phrases?.length ?? 0}`)
+            }
+
+            state.inRange = true
+            this._nearState.set(username, state)
+            continue
+          }
+
+          // LEAVE
+          if (!inRangeNow && state.inRange) {
+            console.log(`[${name}] LEAVE range: ${username}`)
+            state.inRange = false
+            this._nearState.set(username, state)
+          }
         }
+      } catch (err) {
+        console.log(`[${name}] talk tick ERROR:`, err)
       }
     }, this.opts.talkScanMs)
   }
+
 
 
   _scheduleReconnect(reason) {
