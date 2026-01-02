@@ -23,19 +23,17 @@ const botsConfig = [
   { host: HOST, port: PORT, name: 'Joaquin', x: 289.7, y: 253, z: -220, world: 'world_nether' },
 ]
 
-  (async () => {
-    // Asynchronous operations here
-    try {
-      for (let i = 0; i < botsConfig.length; i++) {
-        const bot = botsConfig[i];
-        //const res = await ensureBotWhitelisted(bot.name, LIVE);
-        console.log(res); // { botName, uuid, changed, reloaded }
-      }
-      botsConfig.forEach((cfg, i) => {
-        setTimeout(() => new AfkBot(cfg), i * SPACING_MS)
-      })
 
-    } catch (error) {
-      console.error('Error ', error);
-    }
-  })();
+try {
+  // for (let i = 0; i < botsConfig.length; i++) {
+  //   const bot = botsConfig[i];
+  //   //const res = await ensureBotWhitelisted(bot.name, LIVE);
+  //   console.log(res); // { botName, uuid, changed, reloaded }
+  // }
+  botsConfig.forEach((cfg, i) => {
+    setTimeout(() => new AfkBot(cfg), i * SPACING_MS)
+  })
+
+} catch (error) {
+  console.error('Error ', error);
+}
