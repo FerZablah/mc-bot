@@ -19,6 +19,8 @@
   },
   "homepage": "https://github.com/FerZablah/mc-bot#readme",
   "dependencies": {
-    "mineflayer": "^4.33.0"
+    "mineflayer": "^4.33.0",
+    "rcon-client": "^4.2.5",
+    "ssh2-sftp-client": "^12.0.1"
   }
 }
