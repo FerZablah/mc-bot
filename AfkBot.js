@@ -127,7 +127,8 @@ class AfkBot {
       // trigger on substring "sleep" anywhere
       if (msg.includes('sleep')) {
         console.log(`[${this.opts.name}] sleep trigger from ${username}: ${message}`)
-        await this._trySleep(`chat trigger by ${username}`)
+        bot.end();
+        //await this._trySleep(`chat trigger by ${username}`)
       }
 
       // optional: wake trigger
