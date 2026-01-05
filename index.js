@@ -21,7 +21,9 @@ const serverConfig = {
 const botsConfig = [
   { host: HOST, port: PORT, name: 'Don_Juan', x: 727.7, y: 92, z: 11.5, world: 'world' },
   { host: HOST, port: PORT, name: 'Don_Miguel', x: -135.3, y: 95, z: -627.3, world: 'world' },
+  { host: HOST, port: PORT, name: 'Don_Chuy', x: 210, y: 282, z: -315.7, world: 'world' },
   { host: HOST, port: PORT, name: 'Joaquin', x: 279.3, y: 251, z: -66.6, world: 'world_nether' },
+
 ]
 
 
