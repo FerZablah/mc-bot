@@ -22,7 +22,7 @@ const botsConfig = [
   { host: HOST, port: PORT, name: 'Don_Juan', x: 727.7, y: 92, z: 11.5, world: 'world' },
   { host: HOST, port: PORT, name: 'Don_Miguel', x: -135.3, y: 95, z: -627.3, world: 'world' },
   { host: HOST, port: PORT, name: 'Don_Chuy', x: 216.6, y: 220, z: -316.9, world: 'world' },
-  { host: HOST, port: PORT, name: 'Joaquin', x: 279.3, y: 251, z: -66.6, world: 'world_nether' },
+  { host: HOST, port: PORT, name: 'Joaquin', x: 1795.425, y: 211, z: 9336.700, world: 'world' },
 
 ]
 
